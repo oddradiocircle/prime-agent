@@ -1,198 +1,284 @@
 ---
 name: prime-agent
-description: "Delegate coding to Prime Agent with verification."
-version: 0.2.0
-author: Daniel Gómez
+description: "Use when you delegate coding or research work to Prime Agent."
 license: MIT
-platforms: [linux, macos, windows]
+compatibility: "Requires the Prime Agent CLI and a trusted project workspace."
 metadata:
-  hermes:
-    tags: [Coding-Agent, Prime-Agent, RLM, Subagents, Autonomous, Long-Running, Verification]
-    related_skills: [claude-code, codex, opencode, hermes-agent]
+  author: Daniel Gómez
+  version: "0.3.0"
 ---
 
-# Prime Agent — Hermes Orchestration Guide
+# Prime Agent Coding Skill
 
-Delegate coding and research work to [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent), Prime Intellect's RLM-native coding agent. Prime Agent uses a persistent IPython control environment, native recursive subagents, daemon-backed sessions, durable goals, schedules, and bounded autonomous continuations.
+Use this skill when you need Prime Agent to do coding or research work.
+This skill gives one clear process for short tasks and long tasks.
+It covers child agents, durable sessions, goals, schedules, packages, and integrations.
+It does not depend on a parent agent or a specific host application.
 
-This skill covers the standalone `prime-agent` CLI as an external worker. It does not replace Hermes `delegate_task`, and it does not make Prime Agent a security sandbox: its workers and kernels normally run with the same operating-system permissions as the invoking user.
+## Use This Skill When
 
-## When to Use
+Use this skill when you:
 
-- The user explicitly asks to use Prime Agent.
-- A coding task benefits from a persistent or detachable agent session.
-- A task needs Prime Agent's native `rlm(...)` child-agent delegation.
-- A long task needs bounded autonomous continuations with explicit quality gates.
-- You need Prime Agent's JSON or RPC mode for headless integration.
+- ask Prime Agent to inspect, change, test, or review code;
+- need a task to continue after the terminal closes;
+- need Prime Agent to create child agents;
+- need a goal, schedule, or heartbeat;
+- need a bounded autonomous run;
+- need JSON, RPC, or ACP control; or
+- need a Prime Agent skill, extension, or package.
 
-Do not use this skill for a short analysis that Hermes can answer directly. Do not use one shared checkout for concurrent implementation agents; use separate worktrees or serialize edits.
+Do not use this skill for a short answer that needs no project work.
+Do not use one worktree for two independent implementation agents.
 
-## Prerequisites
+## Safety Rules
 
-- Prime Agent installed and available as `prime-agent`.
-- Authentication configured through Prime Agent `/login`, its auth file, or an environment variable already present in the process environment. Never place API keys in prompts, command history, or skill text.
-- A deliberate `workdir` pointing at the target repository.
-- The target repository's `AGENTS.md`, `CLAUDE.md`, branch policy, and local workflow read before implementation.
-- A clean or understood Git state before launching an implementation worker.
+Follow these rules before you start a task:
 
-Check readiness through the Hermes `terminal` tool:
+1. Treat Prime Agent as a trusted local process.
+2. Do not treat Prime Agent as a security sandbox.
+3. Run Prime Agent only in a trusted project.
+4. Review third-party skills, extensions, and packages before you load them.
+5. Keep credentials out of prompts, files, logs, and command arguments.
+6. Do not commit, push, or deploy unless the user authorizes that action.
+   Do not run a migration unless the user authorizes it.
+7. Use one worktree for one implementation agent.
+8. Use separate worktrees for parallel implementation work.
+9. Preserve changes that existed before the task.
+10. Check the project after every task.
 
-```text
-terminal(command="prime-agent --version")
-terminal(command="prime-agent status")
-terminal(command="prime-agent doctor")
+## Requirements
+
+You need these items:
+
+- the `prime-agent` command;
+- a valid Prime Agent login or provider setup;
+- a trusted project directory;
+- a Git worktree for code changes; and
+- the project rules and test commands.
+
+Check the command before you start:
+
+```bash
+prime-agent --version
+prime-agent status
+prime-agent doctor
 ```
 
-Install only when the user has requested setup or Prime Agent is the selected worker and is absent:
+Install Prime Agent only when the user requests installation.
+You can also install it when the user selects Prime Agent for the task:
 
-```text
-terminal(command="curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh", timeout=120)
+```bash
+curl -fsSL https://app.primeintellect.ai/prime-agent/install.sh | sh
 ```
 
-The public installer currently targets Linux and macOS. A source checkout requires Node.js 22.8.0 or newer, followed by `npm ci` and `./prime-agent.sh`.
+The public installer supports Linux and macOS.
+A source build needs Node.js 22.8.0 or newer.
 
-## Operating Model
+## Prepare the Workspace
 
-Prime Agent exposes one primary model-facing tool: a persistent IPython kernel. File operations, project commands, skills, and delegation are normally performed from that kernel. The TypeScript host owns provider calls, session state, scheduling, and child-agent lifecycles.
+Complete these steps before you start a coding task.
 
-### Recursive subagents
+1. Set the project directory.
+2. Read `AGENTS.md`, `CLAUDE.md`, and the project README when they exist.
+3. Check the current branch.
+4. Check the current Git status.
+5. Read the files that the task can change.
+6. Find the project test, lint, build, and check commands.
+7. Choose one worktree for the Prime Agent process.
 
-The preloaded `rlm` callable admits a child and returns immediately with a handle; it does not return the child's answer. Children must send requested findings to the parent with `agent_message`, or write an artifact that the parent can inspect.
+Use a prompt with these items:
 
-Use prompts that specify the scope, repository path, read-first files, edit permission, expected artifact, and reply channel:
+- task scope;
+- files or symbols in scope;
+- files that are out of scope;
+- permission to edit;
+- permission to commit, push, deploy, or migrate;
+- required checks;
+- expected output; and
+- child-agent permissions.
+
+Example prompt:
+
+```text
+Inspect the authentication flow.
+Read AGENTS.md and the project README first.
+Change only the authentication files and related tests.
+Do not commit or push.
+Run the targeted tests.
+Report each changed file and each command result.
+```
+
+## Run a Short Task
+
+Use print mode for a bounded task:
+
+```bash
+TASK="Inspect the project. Make the requested change. Run the required checks."
+prime-agent -p "$TASK" --cwd /path/to/project
+```
+
+Use file arguments when the task needs named files:
+
+```bash
+prime-agent -p @README.md @AGENTS.md \
+  "Review the plan and list risks. Do not change files." \
+  --cwd /path/to/project
+```
+
+Set the model and thought level only when the user or project requires them:
+
+```bash
+prime-agent -p \
+  --provider provider-name \
+  --model provider/model-id \
+  --thinking high \
+  "Implement the change and run the required checks." \
+  --cwd /path/to/project
+```
+
+Use the Prime Agent login flow or a configured environment variable for credentials.
+Do not place an API key in the command.
+The `--offline` option disables startup network calls.
+It does not make model calls local.
+
+## Run a Long Task
+
+Use an interactive session when the task needs more than one turn:
+
+```bash
+TASK="Work through the migration in verified steps. Do not commit."
+prime-agent "$TASK" --cwd /path/to/project
+```
+
+Prime Agent keeps the session in a worker process.
+A closed terminal does not always stop the worker.
+
+Use these commands to find and control the worker:
+
+```bash
+prime-agent list --all
+prime-agent agents
+prime-agent attach "$AGENT_ID"
+MESSAGE="Run the targeted checks again."
+prime-agent send "$AGENT_ID" "$MESSAGE"
+prime-agent stop "$AGENT_ID"
+prime-agent status
+prime-agent doctor
+```
+
+Use `prime-agent shutdown --force` only when the user asks for it.
+This command stops all Prime Agent workers.
+
+Resume a session with one of these commands:
+
+```bash
+prime-agent -c
+prime-agent -r "$SESSION_ID"
+```
+
+## Create Child Agents
+
+Prime Agent exposes the `rlm` callable in its Python control environment.
+The call admits a child agent and returns a handle.
+The call does not return the child answer.
+
+Give each child one small task.
+State the project path, the read-first files, the edit rights, and the reply method.
 
 ```python
 review = await rlm(
     "Review authentication only. Read AGENTS.md first. Do not edit files. "
-    "Return findings to the parent with await agent_message.send(..., receiver_role='parent').",
+    "Send file and line findings to the parent.",
     name="auth-reviewer",
 )
-tests = await rlm(
-    "Inspect missing regression tests. Do not modify production code. "
-    "Reply to the parent with file:line evidence.",
+
+test_review = await rlm(
+    "Find missing regression tests. Do not change production code. "
+    "Send file and line findings to the parent.",
     name="test-reviewer",
 )
 ```
 
-The parent should end or continue its turn according to the requested workflow; it must not treat the admission handle as the child result. Recover retained children with `await rlm.list_subagents()` and follow up with `agent_message.send(..., receiver_role="child", receiver_name=<name>)`. Delete a child only when its context is no longer needed with `await rlm.delete_subagent(selector)`; deletion closes or cancels the runtime and writes a tombstone but does not erase transcript artifacts.
+A child must send its result with `agent_message` or write a file for the parent.
+Use this form for a parent message:
 
-Children inherit the parent model, provider configuration, skills, tools, and session machinery. They run under the same root worker and operating-system permissions. Use child agents primarily for independent analysis, review, test discovery, or narrowly scoped sequential work unless separate worktrees have been established.
+```python
+await agent_message.send(
+    "The authentication check misses expired tokens in src/auth.ts:88.",
+    receiver_role="parent",
+)
+```
 
-When a child needs another model, discover an exact available selector before spawning:
+List retained children with:
+
+```python
+children = await rlm.list_subagents()
+```
+
+Send a follow-up to a retained child with:
+
+```python
+await agent_message.send(
+    "Check the new regression test.",
+    receiver_role="child",
+    receiver_name="auth-reviewer",
+)
+```
+
+Delete a child when you no longer need its context:
+
+```python
+await rlm.delete_subagent("auth-reviewer")
+```
+
+Use `rlm.find_models()` before you select a child model:
 
 ```python
 models = await rlm.find_models("coding", limit=8)
-handle = await rlm(
-    "Review the API and report file:line findings to the parent.",
-    name="api-reviewer",
-    model="provider/exact-model-id",
-)
 ```
 
-The `model` value must be an exact available `provider/model` selection. If it is unavailable or fails authentication preflight, Prime Agent fails the spawn instead of silently substituting another model. The default maximum recursion depth is 1: root agents may create children, but children do not create grandchildren unless configured otherwise.
+Use an exact `provider/model` value when you set the child model.
+Prime Agent does not replace an unavailable model with another model.
+The default child depth is one level.
+A root agent can create children.
+A child cannot create more children unless you raise the depth limit.
 
-## One-Shot Delegation
+Keep child tasks independent when they run in the same worktree.
+Do not let two children edit the same file at the same time.
 
-Use print mode for a bounded task. Always set `workdir` through Hermes rather than changing directories in an unrelated shell:
+## Send Messages Between Agents
 
-```text
-terminal(
-  command="prime-agent -p 'Inspect the repository, implement the requested fix, run the targeted checks, and report exact files and commands. Do not commit or push.'",
-  workdir="/path/to/project",
-  timeout=600,
-)
+Use the shell command for a running agent:
+
+```bash
+prime-agent send "$AGENT_ID" "Check the latest test result."
 ```
 
-Use `@` file arguments when explicit context is useful:
-
-```text
-terminal(
-  command="prime-agent -p @README.md @AGENTS.md 'Review the implementation plan and identify risks. Do not edit files.'",
-  workdir="/path/to/project",
-  timeout=180,
-)
-```
-
-For model selection and reasoning limits:
-
-```text
-terminal(
-  command="prime-agent -p --provider openai --model openai/gpt-5.1-codex --thinking high 'Implement and verify the change.'",
-  workdir="/path/to/project",
-  timeout=600,
-)
-```
-
-Use the configured Prime Agent auth flow or environment rather than `--api-key` in a command. Prime Agent also supports `--offline` for startup operations when a locally configured model is available; this does not make inference offline.
-
-## Long-Running Sessions
-
-Interactive sessions are daemon-backed. Closing the TUI detaches the client but does not necessarily stop the worker. Start an interactive worker in the background only when multi-turn interaction or later reattachment is needed:
-
-```text
-terminal(
-  command="prime-agent 'Work through the migration in small verified steps; do not commit.'",
-  workdir="/path/to/project",
-  background=true,
-  pty=true,
-)
-```
-
-The Hermes `terminal` result provides a process session ID. Monitor it with `process(action="poll", session_id="<id>")` or `process(action="log", session_id="<id>")`. Send a follow-up through `process(action="submit", session_id="<id>", data="...")` only when the agent is asking for input or the workflow explicitly requires steering.
-
-Prime Agent's daemon-level lifecycle commands are useful after the terminal client detaches:
-
-```text
-terminal(command="prime-agent list --all")
-terminal(command="prime-agent agents")
-terminal(command="prime-agent attach <agent>")
-terminal(command="prime-agent send <agent> 'Re-run the targeted checks and report failures.'")
-terminal(command="prime-agent stop <agent>")
-terminal(command="prime-agent status")
-terminal(command="prime-agent doctor")
-```
-
-Use `prime-agent shutdown --force` only when the user explicitly asks to stop all Prime Agent workers and services. Do not kill a slow worker merely because it has not produced output; inspect logs first.
-
-Resume saved work with `prime-agent -c` for the most recent session or `prime-agent -r [path|id]` for a selected session. Sessions normally persist under Prime Agent's session directory and can outlive the terminal UI.
-
-## Durable Coordination
-
-Use Prime Agent's coordination features when work must continue after the current prompt or terminal disconnect. Keep these distinct:
-
-- **RLM children:** focused subagents created from a parent through `rlm(...)`.
-- **Direct messages:** communication between active root agents or retained children.
-- **Heartbeats:** recurring prompts attached to a session.
-- **Schedules:** one-time or cron prompts owned by an addressable agent.
-- **Goals:** durable objectives that remain active until completed, paused, budget-limited, errored, or cleared.
-- **Autonomous mode:** bounded host-injected continuations for unattended execution.
-
-### Agent messaging
-
-From the shell, address a running agent:
-
-```text
-terminal(command="prime-agent send <agent> 'Recheck the endpoint after the latest edit.'")
-```
-
-From IPython, inspect the roster and choose an explicit delivery mode:
+Use the Python message skill for more control:
 
 ```python
 roster = await agent_message.list_agents()
 receipt = await agent_message.send(
-    "Recheck the endpoint after the latest edit.",
+    "Check the latest test result.",
     receiver_role="sibling",
-    receiver_name="api-reviewer",
-    mode="auto",  # auto, steer, or follow_up
+    receiver_name="test-reviewer",
+    mode="auto",
 )
 print(receipt["deliveryStatus"])
 ```
 
-Use `steer` only when the new instruction should enter active work immediately; use `follow_up` when it must wait for the current work to finish. Broadcast only when every agent in the family roster should receive the message. A `delivered` or `queued` receipt proves delivery state, not task completion.
+Use these message modes:
 
-### Heartbeats and schedules
+- `auto` sends at once to an idle agent and steers a busy agent;
+- `steer` sends at once to a busy agent; and
+- `follow_up` waits until the current work ends.
 
-Use a user heartbeat for one visible recurring instruction:
+A `delivered` or `queued` receipt proves message delivery.
+It does not prove task completion.
+
+## Use Heartbeats and Schedules
+
+Use a heartbeat for a repeated check in the current session:
 
 ```text
 /heartbeat every 10m Check the deployment and report meaningful changes
@@ -202,36 +288,40 @@ Use a user heartbeat for one visible recurring instruction:
 /heartbeat clear
 ```
 
-For several agent-owned recurring checks, use the `rlm_heartbeat` Python skill:
+Use `rlm_heartbeat` for more than one agent-owned check:
 
 ```python
 heartbeat = await rlm_heartbeat.create(
-    "Check whether the test run finished and report failures.",
+    "Check if the test run finished.",
     interval="5m",
     label="tests",
     delivery_mode="follow_up",
 )
 await rlm_heartbeat.list()
-await rlm_heartbeat.update(heartbeat["heartbeat"]["id"], status="pause")
+await rlm_heartbeat.update(
+    heartbeat["heartbeat"]["id"],
+    status="pause",
+)
 ```
 
-Use `prime-agent schedule` for persistent one-time or cron prompts:
+Use a schedule for a future prompt or a cron prompt:
 
-```text
-terminal(command="prime-agent schedule add worker 'in 30m' -- 'Check the benchmark result.'")
-terminal(command="prime-agent schedule add worker '0 9 * * 1-5' -- 'Review open work.'")
-terminal(command="prime-agent schedule list --all")
-terminal(command="prime-agent schedule cancel <job-id>")
+```bash
+prime-agent schedule add worker "in 30m" -- "Check the benchmark result."
+prime-agent schedule add worker "0 9 * * 1-5" -- "Review open work."
+prime-agent schedule list --all
+prime-agent schedule cancel "$JOB_ID"
 ```
 
-Scheduled work persists while the UI is detached. Due ticks are claimed before delivery and missed ticks are coalesced, so a schedule is not a substitute for verifying every run.
+Scheduled prompts remain active after the terminal closes.
+Check the result of each scheduled task.
 
-### Persistent goals
+## Use Persistent Goals
 
-Create a goal only when the user wants the objective retained across ordinary turns:
+Use a goal when the user wants one objective to remain active across turns:
 
 ```text
-/goal Ship the release and verify every published artifact
+/goal Ship the release and check every published artifact
 /goal --budget 200000 Complete the repository migration
 /goal status
 /goal pause
@@ -239,275 +329,286 @@ Create a goal only when the user wants the objective retained across ordinary tu
 /goal clear
 ```
 
-The kernel-side `goal` skill can inspect or complete the state:
+Use the Python goal skill to check or complete the goal:
 
 ```python
 state = await goal.get()
 await goal.complete()
 ```
 
-Only `goal.complete()` marks successful completion. A goal's token budget, elapsed time, continuation count, and error state must be reported separately from autonomous-mode limits.
+Only `goal.complete()` marks a goal as complete.
+A token limit or a time limit does not prove completion.
 
-## Bounded Autonomous Mode
+## Use Bounded Autonomous Mode
 
-Autonomous mode is a host policy, not proof of completion. Bound it with a quality gate and resource limits:
+Autonomous mode adds follow-up turns without user input.
+Always set a check and resource limits for an unattended task:
 
-```text
-terminal(
-  command="prime-agent -p --autonomous --autonomous-gate 'npm run check' --autonomous-gate-retries 2 --autonomous-gate-timeout-ms 300000 --autonomous-max-continuations 3 --autonomous-max-turns 12 --autonomous-max-tokens 80000 --autonomous-timeout-ms 1800000 'Implement the requested change, run the gate, and report verified evidence. Do not commit or push.'",
-  workdir="/path/to/project",
-  timeout=2100,
-)
+```bash
+prime-agent -p \
+  --autonomous \
+  --autonomous-gate "$PROJECT_CHECK" \
+  --autonomous-gate-retries 2 \
+  --autonomous-gate-timeout-ms 300000 \
+  --autonomous-max-continuations 3 \
+  --autonomous-max-turns 12 \
+  --autonomous-max-tokens 80000 \
+  --autonomous-timeout-ms 1800000 \
+  "Make the requested change. Run the check. Report the evidence." \
+  --cwd /path/to/project
 ```
 
-Use the repository's documented check instead of assuming `npm run check`. Repeat `--autonomous-gate` when multiple gates are required. The documented defaults are 3 continuations, 12 assistant turns, 80,000 accumulated tokens, and 30 minutes; set them explicitly for reproducibility.
+Use the project check instead of a fixed command.
+A failed gate gives its bounded output to the next turn.
+A passed gate allows the run to end.
+A turn, token, or time limit does not prove task success.
 
-A failed gate supplies bounded output to the next continuation. Prime Agent avoids rerunning an unchanged failed gate. Passing a gate allows completion, but reaching a continuation, turn, token, or time limit does not imply that the task succeeded. Hermes must still inspect the real workspace and test output.
+Use `--goal` for a durable objective.
+Use `--autonomous` for bounded follow-up turns.
+Do not treat these options as the same feature.
 
-Persistent goals are separate from autonomous mode. Use `--goal` only when the user wants an objective retained across turns; autonomous mode controls whether the host injects another continuation.
+## Keep Context Across Turns
 
-## Continuity, Harness, and Session Branches
-
-Use the persistent harness to make repeated workflows improve without mutating Prime Agent's immutable base system prompt. `/refine` reviews the current trajectory and can create, update, delete, or roll back supplemental prompt notes, memories, reusable skill descriptions, and subagent specifications. Treat each refinement as a small evidence-backed change and inspect the resulting state; do not use it as a substitute for packaging executable functionality.
+Use the continual harness for small, tested improvements to reusable work patterns:
 
 ```text
-/refine Review this run and record only the reusable lesson about the failed migration check.
+/refine Record only the reusable lesson from the failed migration check.
 /refine status
 ```
 
-Use compaction deliberately on long tasks:
+The harness stores notes, memories, and skill descriptions.
+It also stores child-agent specifications and refinement records.
+A refinement does not change the base system prompt.
+Review each refinement before you keep it.
+
+Use compaction when the context grows:
 
 ```text
 /usage
 /context
-/compact Preserve the failing tests, exact commands, decisions, and remaining migration steps.
+/compact Preserve the failing tests, exact commands, decisions, and next steps.
 ```
 
-Auto-compaction is normally enabled. It summarizes older messages while retaining recent context and the persistent IPython namespace; it is not a completion signal and does not stop children, schedules, heartbeats, goals, or autonomous continuations. When changing branches with `/tree`, accept or provide a focused branch summary so important abandoned-path context survives navigation.
+Compaction summarizes old messages.
+It keeps recent messages and the Python state.
+It does not stop children, schedules, heartbeats, goals, or autonomous runs.
 
-Use session trees to explore alternatives without losing the original path:
+Use the session tree to test another approach:
 
 ```text
 /tree
 /fork
 /clone
-/name auth-refresh-experiment
+/name auth-refresh
 /session
 /export /path/to/session.html
-/share
 ```
 
-- `/tree` navigates inside the same JSONL session and can summarize the abandoned branch.
-- `/fork` creates a new session from an earlier user message.
-- `/clone` duplicates the current active branch into a new session file.
-- `/export` creates a local HTML record; `/share` uploads a private GitHub gist and therefore requires explicit user intent.
-- `/usage` and `/context` expose token, cost, context, parent, and child information for budget decisions.
+Use `/share` only when the user asks to upload a private session copy.
+Use `/reload` after you add or change a resource.
+Resources include skills, extensions, prompts, themes, and context files.
+Start a new session after you add a Python-backed skill with new dependencies.
 
-After adding or changing context files, skills, extensions, prompts, or themes, use `/reload`; start a fresh session when a Python-backed skill needs kernel dependency installation.
+## Use Skills, Extensions, and Packages
 
-## JSON and RPC Integration
+Choose the smallest resource type that solves the task:
 
-Use JSON event mode when Hermes or a wrapper needs machine-readable lifecycle output:
+- Use a Markdown skill for instructions.
+- Use a Python-backed skill for an importable Python function.
+- Use a TypeScript extension for tools, events, commands, or permissions.
+  Use it also for providers or UI.
+- Use a prompt template for repeated prompt text.
+- Use a theme for terminal display.
+- Use a package to share several resources.
+
+Use the built-in skill creator for a new Prime Agent skill:
 
 ```text
-terminal(
-  command="prime-agent --mode json 'Analyze the repository and report findings.'",
-  workdir="/path/to/project",
-  timeout=600,
-)
+/skill:skill-creator Create a skill for a specific task.
 ```
 
-JSON mode emits JSONL events such as `session`, `agent_start`, `turn_start`, `tool_execution_*`, `turn_end`, and `agent_end`. Parse the stream rather than scraping TUI text. The command's exit status and subsequent workspace checks remain authoritative.
+Prime Agent finds resources in these locations:
 
-Use RPC mode for a persistent stdin/stdout integration:
+- `~/.prime/agent/skills/`;
+- `.prime/agent/skills/`;
+- `.agents/skills/`;
+- package directories; and
+- paths passed with `--skill`.
 
-```text
-terminal(
-  command="prime-agent --mode rpc",
-  workdir="/path/to/project",
-  background=true,
-  pty=false,
-)
+Use these paths for extensions:
+
+- `~/.prime/agent/extensions/`; and
+- `.prime/agent/extensions/`.
+
+Test one extension for one run before you make it persistent:
+
+```bash
+prime-agent -e ./path/to/extension.ts
 ```
 
-RPC uses strict LF-delimited JSONL. `prompt`, `steer`, `follow_up`, and `abort` are the main control commands. A successful RPC response means the command was accepted or queued, not that the coding work finished; continue consuming events and verify the workspace afterward. Do not use a generic line reader that splits Unicode line separators as record delimiters.
+Manage packages with these commands:
 
-Use ACP when an external editor or Agent Client Protocol harness should drive Prime Agent interactively:
-
-```text
-terminal(
-  command="prime-agent --mode acp",
-  workdir="/path/to/project",
-  background=true,
-  pty=false,
-)
+```bash
+prime-agent package install npm:@scope/package@1.2.3
+prime-agent package install git:github.com/user/repo@v1 --local
+prime-agent package list
+prime-agent package update
+prime-agent package remove npm:@scope/package
+prime-agent update
+prime-agent config
 ```
 
-ACP uses JSON-RPC 2.0 over newline-delimited JSON. Its standard methods include `initialize`, `session/new`, `session/prompt`, `session/cancel`, and `session/close`. One ACP connection owns one session and one working directory; start another process for another isolated session. Prime Agent-specific subagent, autonomous, goal, heartbeat, refinement, compaction, and rich-IPython state appears in the reverse-domain `_meta` envelope. Do not write diagnostics to ACP stdout.
+Pin package versions for repeatable work.
+Review package source before you install it.
+A package can run code with the same rights as the user.
 
-Use the Node.js SDK instead of spawning a CLI when embedding Prime Agent in a TypeScript/Node application. The SDK exposes `createAgentSession`, `AgentSession`, `AgentSessionRuntime`, events, prompt queues, resources, tools, extensions, skills, and run modes. Keep SDK embedding separate from shell delegation and verify the same workdir, session lifecycle, provider, and event completion semantics.
+## Use JSON, RPC, ACP, or the SDK
 
-## Context and Skills
+Use JSON mode for a batch run with machine-readable events:
 
-Prime Agent loads `AGENTS.md` and `CLAUDE.md` from its global and repository-parent context. Treat those files as executable project policy: read them before delegating, and ensure the prompt names the relevant check and branch restrictions.
-
-Prime Agent discovers skills from `~/.prime/agent/skills/`, `.prime/agent/skills/`, `.agents/skills/`, packages, settings, or explicit `--skill` paths. It supports the Agent Skills markdown format and Python-backed skills. Skills are loaded progressively, and `/reload` rediscoveries changes during an interactive session.
-
-For a project-specific Prime Agent skill, use `.prime/agent/skills/<name>/`. For a personal skill, use `~/.prime/agent/skills/<name>/`. Review third-party skills before loading them: Prime Agent's kernel and worker are not a security sandbox.
-
-## Extensibility and Resource Packages
-
-Choose the smallest customization surface that solves the problem:
-
-- **Markdown skill:** reusable instructions and workflow guidance.
-- **Python-backed skill:** an importable callable in the persistent IPython kernel; the package includes `SKILL.md`, `pyproject.toml`, and `src/<import_name>/__init__.py`.
-- **Extension:** a TypeScript module for custom tools, event interception, permission gates, commands, shortcuts, providers, UI, rendering, or persistent extension state.
-- **Prompt template:** reusable prompt expansion.
-- **Theme:** terminal presentation.
-- **Package:** a distributable npm/git bundle of extensions, skills, prompts, and themes.
-
-Use the built-in skill creator explicitly with `/skill:skill-creator <request>` when creating new Prime Agent skills, and use `/reload` after adding resources. For extensions, use project-local `.prime/agent/extensions/` or global `~/.prime/agent/extensions/`; test a one-off with `-e` before making it persistent. Extensions and Python skills execute with full user permissions.
-
-Manage resource packages explicitly:
-
-```text
-terminal(command="prime-agent package install npm:@scope/package@1.2.3")
-terminal(command="prime-agent package install git:github.com/user/repo@v1 --local")
-terminal(command="prime-agent package list")
-terminal(command="prime-agent package update")
-terminal(command="prime-agent package remove npm:@scope/package")
-terminal(command="prime-agent update")
-terminal(command="prime-agent config")
+```bash
+prime-agent --mode json "Analyze the repository and report findings." \
+  --cwd /path/to/project
 ```
 
-Pin third-party package versions for reproducibility, use `--local` for project settings that should travel with a repository, and review package source before installation. A package may run arbitrary TypeScript, install npm dependencies, expose model-callable tools, or instruct the model to execute commands.
+Read the JSON lines until the run ends.
+Use the exit status and the project files as completion checks.
 
-For provider/model customization, prefer the documented `/login`, `models.json`, settings, or a trusted extension. An extension can register a provider, but credentials must remain in the host's auth/configuration boundary and never be embedded in a skill or prompt.
+Use RPC mode for a persistent line-based control connection:
 
-## Runtime Configuration and Observability
+```bash
+prime-agent --mode rpc --cwd /path/to/project
+```
 
-Prime Agent merges global `~/.prime/agent/settings.json` with project `.prime/agent/settings.json`; project settings override global settings. Use `/settings` for interactive changes and keep shared project policy in the repository only when intended.
+Use `prompt`, `steer`, `follow_up`, and `abort` commands.
+A response that accepts a command does not prove task completion.
+Keep reading events until the run ends.
 
-Useful settings include:
+Use ACP mode when an external client needs to control a session:
+
+```bash
+prime-agent --mode acp --cwd /path/to/project
+```
+
+ACP uses one JSON-RPC message per line.
+One connection owns one session and one project directory.
+Use a new process for a second session.
+Keep protocol output on standard output.
+Send diagnostics to standard error.
+
+Use the Node.js SDK when a Node.js application must create and control sessions.
+Use `createAgentSession` and the documented session events.
+Check the project path, model, session state, and end state.
+Use the same checks that you use for the CLI.
+
+## Configure the Runtime
+
+Prime Agent reads global settings from `~/.prime/agent/settings.json`.
+It reads project settings from `.prime/agent/settings.json`.
+Project settings override global settings.
+
+Use `/settings` for interactive changes.
+Keep shared project settings in version control only when the project needs them.
+
+Example settings:
 
 ```json
 {
-  "defaultProvider": "openai",
-  "defaultModel": "openai/gpt-5.1-codex",
+  "defaultProvider": "provider-name",
+  "defaultModel": "provider/model-id",
   "defaultThinkingLevel": "high",
-  "compaction": { "enabled": true, "reserveTokens": 16384, "keepRecentTokens": 20000 },
-  "retry": { "enabled": true, "maxRetries": 3 },
+  "compaction": {
+    "enabled": true,
+    "reserveTokens": 16384,
+    "keepRecentTokens": 20000
+  },
+  "retry": {
+    "enabled": true,
+    "maxRetries": 3
+  },
   "steeringMode": "one-at-a-time",
   "followUpMode": "one-at-a-time"
 }
 ```
 
-Use `/usage` and `/context` before raising budgets or spawning more children. Prime Agent attributes child usage to the parent turn while keeping child context accounting distinguishable. Consider the daemon's idle eviction policy when relying on retained children for later follow-up.
+Use `/usage` and `/context` before you raise budgets or add children.
+Child use counts toward the parent turn.
 
-Trace sharing is opt-in and should be treated as an external side effect:
+Treat trace upload and session sharing as external actions:
 
 ```text
 /traces status
-/traces on
 /traces preview
 /traces upload-current
 /traces off
 ```
 
-Do not upload traces, use `/share`, or enable telemetry changes unless the user explicitly requests it. For privacy-sensitive work, inspect the configured telemetry setting and use the documented global opt-out rather than inventing a local credential or endpoint.
-
-## Repository and Worktree Discipline
-
-- Set the Hermes `terminal` `workdir` explicitly for every Prime Agent invocation.
-- Never run two independent implementation agents in the same checkout.
-- For parallel edits, create separate Git worktrees and launch one Prime Agent worker per worktree; merge only after reviewing each diff.
-- For internal `rlm(...)` children in one root worker, default to independent analysis or serialize edits unless the project explicitly provides isolation.
-- Preserve unrelated user changes. Inspect `git status --short` before and after the run.
-- Do not ask Prime Agent to commit, push, deploy, or migrate unless the user explicitly authorizes that exact side effect.
-- In Skemática, keep `skematica-platform` docs-only and route implementation to the owning runtime repository after reading its local instructions and branch strategy.
+Run these commands only with user approval.
 
 ## Procedure
 
-1. **Resolve the target.** Identify the exact repository, bounded context, branch policy, and absolute `workdir`.
-2. **Read context.** Inspect `AGENTS.md`, `CLAUDE.md`, the repository README, current Git status, and the requested files before launching an implementation worker.
-3. **Choose the mode.** Use print mode for bounded work, a daemon-backed interactive session for multi-turn work, JSON/RPC for programmatic integration, and autonomous mode only with explicit gates and limits.
-4. **Bound the prompt.** State scope, files or symbols, edit/commit/deploy permissions, required checks, expected report, and whether subagents may edit.
-5. **Launch one worker.** Use the Hermes `terminal` tool with explicit `workdir`; use a separate worktree for any concurrent implementation.
-6. **Monitor honestly.** For background work, inspect `process` output and Prime Agent lifecycle state. Do not infer completion from process admission, a queued RPC response, or a reached autonomous limit.
-7. **Verify the artifact.** Re-run `git status --short`, inspect `git diff --check` and the relevant diff, run the repository's real tests/checks, and confirm generated artifacts or endpoints when applicable.
-8. **Report evidence.** Return files changed, commands and actual results, remaining failures, process/session identifiers, and any unverified claims. Never report a Prime Agent summary as verified until the workspace confirms it.
-9. **Clean up.** Stop or detach only the intended worker, and remove temporary worktrees after their diffs are reconciled.
+1. Confirm the project path.
+2. Read the project rules and README.
+3. Check the branch and Git status.
+4. Select one worktree.
+5. Write a bounded task prompt.
+6. Select print, interactive, JSON, RPC, ACP, or autonomous mode.
+7. Set a check and a resource limit.
+8. Start one Prime Agent process.
+9. Check the process, session, or event stream.
+10. Check the project files and the task result.
+11. Run the required tests and checks.
+12. Report changed files, commands, results, limits, and open issues.
+13. Stop or detach only the intended worker.
 
 ## Quick Reference
 
-```text
-# Readiness
-terminal(command="prime-agent --version")
-terminal(command="prime-agent status")
-terminal(command="prime-agent doctor")
-
-# One-shot
-terminal(command="prime-agent -p '<task>'", workdir="/path/to/project", timeout=600)
-
-# Background interactive
-terminal(command="prime-agent '<task>'", workdir="/path/to/project", background=true, pty=true)
-process(action="poll", session_id="<id>")
-process(action="log", session_id="<id>")
-process(action="submit", session_id="<id>", data="<follow-up>")
-
-# Lifecycle
-terminal(command="prime-agent list --all")
-terminal(command="prime-agent attach <agent>")
-terminal(command="prime-agent send <agent> '<message>'")
-terminal(command="prime-agent stop <agent>")
-terminal(command="prime-agent status")
-terminal(command="prime-agent doctor")
-
-# Sessions
-terminal(command="prime-agent -c", workdir="/path/to/project")
-terminal(command="prime-agent -r <path-or-id>", workdir="/path/to/project")
-
-# Durable coordination
-terminal(command="prime-agent send <agent> '<message>'")
-terminal(command="prime-agent schedule list --all")
-# In interactive mode: /heartbeat, /goal, /refine, /compact, /tree, /fork, /clone
-
-# Resources
-terminal(command="prime-agent package list")
-terminal(command="prime-agent package install <source> [--local]")
-terminal(command="prime-agent config")
-
-# Autonomous, bounded
-terminal(command="prime-agent -p --autonomous --autonomous-gate '<check>' --autonomous-max-turns 12 --autonomous-timeout-ms 1800000 '<task>'", workdir="/path/to/project", timeout=2100)
-
-# Headless integration
-terminal(command="prime-agent --mode json '<task>'", workdir="/path/to/project", timeout=600)
-terminal(command="prime-agent --mode rpc", workdir="/path/to/project", background=true, pty=false)
+```bash
+prime-agent --version
+prime-agent status
+prime-agent doctor
+prime-agent -p "$TASK" --cwd /path/to/project
+prime-agent "$TASK" --cwd /path/to/project
+prime-agent list --all
+prime-agent attach "$AGENT_ID"
+prime-agent send "$AGENT_ID" "$MESSAGE"
+prime-agent stop "$AGENT_ID"
+prime-agent -c
+prime-agent -r "$SESSION_ID"
+prime-agent schedule list --all
+prime-agent package list
+prime-agent --mode json "$TASK" --cwd /path/to/project
+prime-agent --mode rpc --cwd /path/to/project
+prime-agent --mode acp --cwd /path/to/project
 ```
 
-## Pitfalls and Safety
+## Limits and Failure Cases
 
-1. **Not a sandbox:** worker and kernel process isolation is for lifecycle and recovery, not privilege reduction.
-2. **`rlm()` is admission-only:** the returned handle is not the child's answer; use `agent_message` or files.
-3. **Same-checkout collisions:** internal children share the root worker's repository context; avoid concurrent writes without isolation.
-4. **Autonomous limits are not success:** gate results, exit status, tests, and workspace inspection are required.
-5. **Detached workers persist:** use `list`, `attach`, `stop`, and `shutdown` deliberately to avoid orphaned work.
-6. **RPC acceptance is not completion:** keep reading events until the run ends, then verify the workspace.
-7. **Context drift:** Prime Agent loads `AGENTS.md` and `CLAUDE.md`; stale or conflicting instructions can alter the result.
-8. **Secrets:** prefer `/login`, auth files, or preconfigured environment variables; never echo or paste credentials.
-9. **Provider mismatch:** `--offline` disables startup network calls but still requires a configured provider and does not make model inference local.
-10. **Cross-repo work:** read the owner repository's instructions and branch strategy before edits; do not implement runtime code in `skematica-platform`.
+1. Prime Agent does not provide a security sandbox.
+2. A child handle proves admission, not a child result.
+3. Two writers can change the same file and cause a conflict.
+4. A queued message proves delivery, not task completion.
+5. A passed gate proves only the command that the gate checks.
+6. A limit proves that the run stopped, not that the task succeeded.
+7. A detached worker can continue after the terminal closes.
+8. A Python skill can fail when the kernel lacks its package.
+9. An exact child model can fail when its credentials are not valid.
+10. A protocol response can accept a command before the task ends.
+11. A trace upload or session share sends data outside the local machine.
 
-## Verification
+## Check Completion
 
-A Prime Agent delegation is verified only when all applicable evidence is present:
+Mark the task complete only when the applicable checks pass:
 
-- The launch command exited successfully, or the background worker reached a documented end state.
-- The actual target workdir is confirmed.
-- `git status --short` and the diff account for every changed file.
-- The repository's documented tests, lint, build, or check command ran and its real output is recorded.
-- Any requested generated artifact, deployment handle, or endpoint was independently checked.
-- Autonomous gates passed when configured; a limit or agent self-report alone is insufficient.
-- Background processes and temporary worktrees were intentionally retained or cleaned up.
+- The process ends normally or reaches a known end state.
+- The project path is correct.
+- `git status --short` shows the expected changes.
+- The diff contains no unexpected file.
+- The project tests, lint, build, or check command passes.
+- Each autonomous gate passes.
+- Each requested artifact exists.
+- Each requested endpoint or deployment has independent evidence.
+- No worker or temporary worktree remains by accident.
 
-When evidence is incomplete, report the exact missing verification instead of inferring success.
+If a check is missing, report the missing check.
+Do not infer success from a Prime Agent message alone.

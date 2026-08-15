@@ -1,49 +1,58 @@
-# Prime Agent — Coding-Agent Delegation Skill
+# Prime Agent Coding Skill
 
-A reusable Agent Skill for orchestrating [Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent) from Hermes and other compatible coding agents.
+A reusable Agent Skill for Prime Agent.
 
-## What it covers
+## Scope
 
-The skill documents Prime Agent's full operating surface: RLM child agents, agent-to-agent messaging, persistent sessions, daemon workers, heartbeats, schedules, goals, bounded autonomous mode, continual-harness refinement, compaction, session branching, Python-backed skills, TypeScript extensions, resource packages, JSON/RPC/ACP integrations, SDK embedding, provider configuration, and evidence-based verification.
+This skill is agent-agnostic.
+It does not depend on a host agent.
+It gives one process for Prime Agent coding work.
 
-## Install
+The skill covers:
 
-From the public repository:
+- short tasks;
+- long tasks;
+- child agents;
+- agent messages;
+- heartbeats;
+- schedules;
+- persistent goals;
+- bounded autonomous runs;
+- session memory and compaction;
+- skills and extensions;
+- packages;
+- JSON, RPC, and ACP modes;
+- Node.js SDK use; and
+- evidence-based checks.
 
-```bash
-npx skills add oddradiocircle/prime-agent --skill prime-agent
-```
+## Local Check
 
-To inspect the available skill before installing:
-
-```bash
-npx skills add oddradiocircle/prime-agent --list
-```
-
-For local validation without a remote:
+Run this command from the repository root:
 
 ```bash
 npx skills add ./ --list
 ```
 
-The repository also includes `agents/openai.yaml` for compatible OpenAI agent tooling.
+The command must find one skill named `prime-agent`.
 
-## Authorship and attribution
+## Install
 
-Authored by **Daniel Gómez**. This is an independent orchestration skill and is not affiliated with or endorsed by Prime Intellect. Prime Agent remains the property of Prime Intellect-ai and is linked as the upstream project documented by this skill.
+Install the current public release with:
 
-## Community contributions
+```bash
+npx skills add oddradiocircle/prime-agent --skill prime-agent
+```
 
-Issues and pull requests are welcome. Keep changes focused on documented Prime Agent behavior, preserve the safety boundaries in `skills/prime-agent/SKILL.md`, and include a reproducible verification command for documentation changes.
+## Author and Attribution
 
-## Publication
+Author: **Daniel Gómez**.
 
-The canonical public repository is:
-
-<https://github.com/oddradiocircle/prime-agent>
-
-The repository is prepared for discovery by compatible agent-skill indexes such as [skills.sh](https://skills.sh/). Vercel deployment is not required for skill installation or discovery.
+This skill is an independent guide.
+It is not an official Prime Intellect product.
+[Prime Agent](https://github.com/PrimeIntellect-ai/prime-agent) is developed by
+Prime Intellect.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT.
+See [LICENSE](LICENSE).

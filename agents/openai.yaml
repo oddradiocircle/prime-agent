@@ -1,5 +1,0 @@
-interface:
-  display_name: "Prime Agent"
-  short_description: "Orquesta Prime Agent con verificación y límites claros"
-policy:
-  allow_implicit_invocation: true
