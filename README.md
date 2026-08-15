@@ -8,7 +8,7 @@ The skill documents Prime Agent's full operating surface: RLM child agents, agen
 
 ## Install
 
-Using the open agent skills CLI:
+From the public repository:
 
 ```bash
 npx skills add oddradiocircle/prime-agent --skill prime-agent
@@ -20,6 +20,12 @@ To inspect the available skill before installing:
 npx skills add oddradiocircle/prime-agent --list
 ```
 
+For local validation without a remote:
+
+```bash
+npx skills add ./ --list
+```
+
 The repository also includes `agents/openai.yaml` for compatible OpenAI agent tooling.
 
 ## Authorship and attribution
@@ -28,7 +34,15 @@ Authored by **Daniel Gómez**. This is an independent orchestration skill and is
 
 ## Community contributions
 
-Issues and pull requests are welcome. Keep changes focused on documented Prime Agent behavior, preserve the safety boundaries in `SKILL.md`, and include a reproducible verification command for documentation changes.
+Issues and pull requests are welcome. Keep changes focused on documented Prime Agent behavior, preserve the safety boundaries in `skills/prime-agent/SKILL.md`, and include a reproducible verification command for documentation changes.
+
+## Publication
+
+The canonical public repository is:
+
+<https://github.com/oddradiocircle/prime-agent>
+
+The repository is prepared for discovery by compatible agent-skill indexes such as [skills.sh](https://skills.sh/). Vercel deployment is not required for skill installation or discovery.
 
 ## License
 
