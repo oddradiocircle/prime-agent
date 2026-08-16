@@ -4,26 +4,20 @@ A reusable Agent Skill for Prime Agent.
 
 ## Scope
 
-This skill is agent-agnostic.
-It does not depend on a host agent.
-It gives one process for Prime Agent coding work.
+This skill gives host agents and in-session Prime Agent users one secure process
+for bounded coding and repository-research work.
 
-The skill covers:
+It covers:
 
-- short tasks;
-- long tasks;
-- child agents;
-- agent messages;
-- heartbeats;
-- schedules;
-- persistent goals;
-- bounded autonomous runs;
-- session memory and compaction;
-- skills and extensions;
-- packages;
-- JSON, RPC, and ACP modes;
-- Node.js SDK use; and
-- evidence-based checks.
+- permission-bounded short and multi-step tasks;
+- practical trust boundaries for repository content;
+- safe CLI defaults that disable unreviewed workspace resources;
+- read-only child-agent reviews and worktree isolation;
+- command review, diff inspection, and evidence-based completion; and
+- explicit stop conditions for external or destructive actions.
+
+Runtime installation, package management, uploads, telemetry, releases, and
+deployments are intentionally outside the skill.
 
 ## Local Check
 
